@@ -8,10 +8,9 @@ from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 
 TEMPLATE_PATH = r"C:/Users/ASUS/.gemini/antigravity/brain/67939757-124b-4dee-9122-0cf9a8f5927d/.user_uploaded/media_1794596017373_67a86bce.docx"
-OUTPUT_DOCX = r"c:/Users/ASUS/Documents/ds project/Data_Structures_Mini_Project_Report_Filled.docx"
-OUTPUT_ARTIFACT_DOCX = r"C:/Users/ASUS/.gemini/antigravity/brain/67939757-124b-4dee-9122-0cf9a8f5927d/Data_Structures_Mini_Project_Report_Filled.docx"
-OUTPUT_DESKTOP_DOCX = os.path.join(os.environ["USERPROFILE"], "Desktop", "Hostel_Room_Allocation_Mini_Project_Report.docx")
-OUTPUT_DOWNLOADS_DOCX = os.path.join(os.environ["USERPROFILE"], "Downloads", "Hostel_Room_Allocation_Mini_Project_Report.docx")
+OUTPUT_DOCX = r"c:/Users/ASUS/Documents/ds project/Hostel_Room_Allocation_System_Report.docx"
+OUTPUT_FALLBACK_DOCX = r"c:/Users/ASUS/Documents/ds project/Data_Structures_Mini_Project_Report_Filled.docx"
+OUTPUT_ARTIFACT_DOCX = r"C:/Users/ASUS/.gemini/antigravity/brain/67939757-124b-4dee-9122-0cf9a8f5927d/Hostel_Room_Allocation_System_Report.docx"
 OUTPUT_MD = r"c:/Users/ASUS/Documents/ds project/REPORT.md"
 
 STUDENTS = [
@@ -21,12 +20,27 @@ STUDENTS = [
     ("4", "Praveen Patil", "NB25ISE174")
 ]
 
+FONT_FAMILY = "Times New Roman"
+
+def set_font_run(run, font_name=FONT_FAMILY, size_pt=12, bold=False, italic=False, color_rgb=None):
+    run.font.name = font_name
+    run.font.size = Pt(size_pt)
+    run.bold = bold
+    run.italic = italic
+    if color_rgb:
+        run.font.color.rgb = color_rgb
+    rPr = run._r.get_or_add_rPr()
+    rFonts = rPr.get_or_add_rFonts()
+    rFonts.set(qn('w:ascii'), font_name)
+    rFonts.set(qn('w:hAnsi'), font_name)
+    rFonts.set(qn('w:cs'), font_name)
+
 def set_cell_background(cell, fill_hex):
     tcPr = cell._tc.get_or_add_tcPr()
     shd = parse_xml(f'<w:shd {nsdecls("w")} w:fill="{fill_hex}"/>')
     tcPr.append(shd)
 
-def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
+def set_cell_margins(cell, top=120, bottom=120, left=150, right=150):
     tcPr = cell._tc.get_or_add_tcPr()
     tcMar = OxmlElement('w:tcMar')
     for m, val in [('top', top), ('bottom', bottom), ('left', left), ('right', right)]:
@@ -36,37 +50,109 @@ def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
         tcMar.append(node)
     tcPr.append(tcMar)
 
-def format_table(table, header_bg="E2E8F0"):
+def format_table(table, col_widths, header_bg="E2E8F0"):
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
-    for i, row in enumerate(table.rows):
-        for cell in row.cells:
-            set_cell_margins(cell, top=120, bottom=120, left=150, right=150)
-            if i == 0:
+    for row_idx, row in enumerate(table.rows):
+        for col_idx, cell in enumerate(row.cells):
+            cell.width = col_widths[col_idx]
+            set_cell_margins(cell, top=100, bottom=100, left=140, right=140)
+            if row_idx == 0:
                 set_cell_background(cell, header_bg)
                 for p in cell.paragraphs:
+                    p.paragraph_format.space_before = Pt(2)
+                    p.paragraph_format.space_after = Pt(2)
+                    p.paragraph_format.line_spacing = 1.0
                     for r in p.runs:
-                        r.font.bold = True
-                        r.font.name = "Calibri"
-                        r.font.size = Pt(10)
+                        set_font_run(r, FONT_FAMILY, 10.5, bold=True)
+            else:
+                for p in cell.paragraphs:
+                    p.paragraph_format.space_before = Pt(2)
+                    p.paragraph_format.space_after = Pt(2)
+                    p.paragraph_format.line_spacing = 1.0
+                    for r in p.runs:
+                        set_font_run(r, FONT_FAMILY, 10, bold=r.bold, italic=r.italic, color_rgb=r.font.color.rgb if r.font.color else None)
 
-def generate_filled_docx():
+def add_body_paragraph(after_element, text, bold_prefix="", space_before=0, space_after=6, line_spacing=1.15, align=WD_ALIGN_PARAGRAPH.JUSTIFY, size_pt=12):
+    new_p = docx.oxml.OxmlElement('w:p')
+    after_element.addnext(new_p)
+    p = docx.text.paragraph.Paragraph(new_p, after_element.getparent())
+    p.paragraph_format.alignment = align
+    p.paragraph_format.space_before = Pt(space_before)
+    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.line_spacing = line_spacing
+    if bold_prefix:
+        r_pre = p.add_run(bold_prefix)
+        set_font_run(r_pre, FONT_FAMILY, size_pt, bold=True)
+    if text:
+        r_text = p.add_run(text)
+        set_font_run(r_text, FONT_FAMILY, size_pt, bold=False)
+    return new_p
+
+def add_code_block(after_element, code_text, space_before=4, space_after=6):
+    new_p = docx.oxml.OxmlElement('w:p')
+    after_element.addnext(new_p)
+    p = docx.text.paragraph.Paragraph(new_p, after_element.getparent())
+    p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p.paragraph_format.left_indent = Inches(0.25)
+    p.paragraph_format.space_before = Pt(space_before)
+    p.paragraph_format.space_after = Pt(space_after)
+    p.paragraph_format.line_spacing = 1.0
+    r = p.add_run(code_text)
+    set_font_run(r, FONT_FAMILY, 9.5, bold=False, color_rgb=RGBColor(0x0F, 0x17, 0x2A))
+    return new_p
+
+def main():
     doc = docx.Document(TEMPLATE_PATH)
-    
-    # 1. Update Title and Cover Page
-    for p in doc.paragraphs:
-        txt = p.text
-        if "[TITLE OF THE MINI PROJECT]" in txt or "TITLE OF THE MINI PROJECT" in txt:
-            p.text = "SMART HOSTEL ROOM ALLOCATION AND FIFO WAITING LIST MANAGEMENT SYSTEM"
-            p.runs[0].font.bold = True
-            p.runs[0].font.size = Pt(15)
-            p.runs[0].font.name = 'Calibri'
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        elif "Academic Year: [2026" in txt or "Academic Year: [20262027]" in txt or "Academic Year: [2026-2027]" in txt:
-            p.text = "Department of Information Science and Engineering\nNITTE MEENAKSHI INSTITUTE OF TECHNOLOGY\nAcademic Year: 2026-2027"
-            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    doc.styles['Normal'].font.name = FONT_FAMILY
+    doc.styles['Normal'].font.size = Pt(12)
 
-    # Table 0: Student Members Table on Cover Page
-    t0 = doc.tables[0]
+    # Save direct references to original 5 tables before any new tables are added
+    t_cover = doc.tables[0]
+    t_cert = doc.tables[1]
+    t_ds = doc.tables[2]
+    t_tests = doc.tables[3]
+    t_complexity = doc.tables[4]
+
+    # -------------------------------------------------------------
+    # 1. COVER PAGE FORMATTING & ALIGNMENT
+    # -------------------------------------------------------------
+    cover_updates = {
+        0: ("NITTE MEENAKSHI INSTITUTE OF TECHNOLOGY", 16, True, WD_ALIGN_PARAGRAPH.CENTER, 0, 2),
+        1: ("Nitte (Deemed to be University)", 12, False, WD_ALIGN_PARAGRAPH.CENTER, 0, 18),
+        3: ("MINI PROJECT REPORT", 14, True, WD_ALIGN_PARAGRAPH.CENTER, 0, 2),
+        4: ("ON", 12, False, WD_ALIGN_PARAGRAPH.CENTER, 0, 6),
+        5: ("SMART HOSTEL ROOM ALLOCATION AND FIFO WAITING LIST MANAGEMENT SYSTEM", 15, True, WD_ALIGN_PARAGRAPH.CENTER, 0, 18),
+        8: ("Submitted in partial fulfillment of the requirements for the course", 11, False, WD_ALIGN_PARAGRAPH.CENTER, 0, 2),
+        9: ("DATA STRUCTURES (25CSE201)", 13, True, WD_ALIGN_PARAGRAPH.CENTER, 0, 2),
+        10: ("Semester 3 Section A", 11, False, WD_ALIGN_PARAGRAPH.CENTER, 0, 14),
+        12: ("Submitted by:", 12, True, WD_ALIGN_PARAGRAPH.CENTER, 0, 6),
+    }
+
+    for idx, (txt, sz, bld, aln, sp_b, sp_a) in cover_updates.items():
+        if idx < len(doc.paragraphs):
+            p = doc.paragraphs[idx]
+            p.text = txt
+            p.paragraph_format.alignment = aln
+            p.paragraph_format.space_before = Pt(sp_b)
+            p.paragraph_format.space_after = Pt(sp_a)
+            p.paragraph_format.line_spacing = 1.15
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, sz, bold=bld)
+
+    # Institution block at bottom of Cover Page
+    for p in doc.paragraphs:
+        if "Academic Year: [2026" in p.text or "Academic Year: [20262027]" in p.text or "Department of Information Science" in p.text:
+            p.text = "Department of Information Science and Engineering\nNITTE MEENAKSHI INSTITUTE OF TECHNOLOGY\nAcademic Year: 2026–2027"
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(14)
+            p.paragraph_format.space_after = Pt(0)
+            p.paragraph_format.line_spacing = 1.15
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 11.5, bold=True)
+
+    # Table 0: Student Members on Cover Page
+    t0 = t_cover
+    t0_widths = [Inches(0.9), Inches(3.6), Inches(1.8)]
     for row_idx, s in enumerate(STUDENTS, start=1):
         row = t0.rows[row_idx]
         row.cells[0].text = s[0]
@@ -74,32 +160,69 @@ def generate_filled_docx():
         row.cells[2].text = s[2]
         for c_idx, c in enumerate(row.cells):
             for p in c.paragraphs:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx != 1 else WD_ALIGN_PARAGRAPH.LEFT
+                p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx in (0, 2) else WD_ALIGN_PARAGRAPH.LEFT
                 for r in p.runs:
-                    r.font.name = 'Calibri'
-                    r.font.size = Pt(10.5)
-    format_table(t0)
+                    set_font_run(r, FONT_FAMILY, 10.5, bold=False)
+    # Header cells of Table 0
+    t0.rows[0].cells[0].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    t0.rows[0].cells[1].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    t0.rows[0].cells[2].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    format_table(t0, t0_widths)
 
-    # 2. Certificate Page
+    # -------------------------------------------------------------
+    # 2. CERTIFICATE PAGE
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        txt = p.text
-        if "This is to certify that the mini project entitled" in txt:
+        if p.text.strip() == "CERTIFICATE":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(12)
+            p.paragraph_format.space_after = Pt(12)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "This is to certify that the mini project entitled" in p.text:
             p.text = (
                 "This is to certify that the mini project entitled \"Smart Hostel Room Allocation "
                 "and FIFO Waiting List Management System\" has been completed by the students listed "
                 "in this report, in partial fulfillment of the requirements for the Data Structures "
-                "(25CSE201) course under the guidance of Dr. Deepthi K during the academic year 2026-2027."
+                "(25CSE201) course under the guidance of Dr. Deepthi K during the academic year 2026–2027."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.25
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
-        elif "Course Instructor: ______________________________" in txt:
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
+        elif "Course Instructor: ______________________________" in p.text:
             p.text = "Course Instructor: Dr. Deepthi K, Assistant Professor, Dept. of ISE"
-        elif "Head of the Department: _________________________" in txt:
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(14)
+            p.paragraph_format.space_after = Pt(4)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 11, bold=True)
+        elif "Head of the Department: _________________________" in p.text:
             p.text = "Head of the Department: Dr. Prasad N. H., Professor & Head, Dept. of ISE"
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(14)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 11, bold=True)
+        elif "Signature of Course Instructor: ________________" in p.text:
+            p.text = "Signature of Course Instructor: ______________________________"
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(16)
+            p.paragraph_format.space_after = Pt(4)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 11, bold=False)
+        elif "Date: ____________________" in p.text:
+            p.text = "Date: ____________________"
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 11, bold=False)
 
-    # Table 1: Student Members Table on Certificate Page
-    t1 = doc.tables[1]
+    # Table 1: Student Members on Certificate Page
+    t1 = t_cert
     for row_idx, s in enumerate(STUDENTS, start=1):
         row = t1.rows[row_idx]
         row.cells[0].text = s[0]
@@ -107,47 +230,71 @@ def generate_filled_docx():
         row.cells[2].text = s[2]
         for c_idx, c in enumerate(row.cells):
             for p in c.paragraphs:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx != 1 else WD_ALIGN_PARAGRAPH.LEFT
+                p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER if c_idx in (0, 2) else WD_ALIGN_PARAGRAPH.LEFT
                 for r in p.runs:
-                    r.font.name = 'Calibri'
-                    r.font.size = Pt(10.5)
-    format_table(t1)
+                    set_font_run(r, FONT_FAMILY, 10.5, bold=False)
+    t1.rows[0].cells[0].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    t1.rows[0].cells[1].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    t1.rows[0].cells[2].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    format_table(t1, t0_widths)
 
-    # 3. Acknowledgement
+    # -------------------------------------------------------------
+    # 3. ACKNOWLEDGEMENT PAGE
+    # -------------------------------------------------------------
     for i, p in enumerate(doc.paragraphs):
         if p.text.strip() == "ACKNOWLEDGEMENT":
-            doc.paragraphs[i + 1].text = (
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(14)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+            
+            # Set body text in next paragraph
+            p_ack_body = doc.paragraphs[i + 1]
+            p_ack_body.text = (
                 "We would like to express our deepest gratitude to our respected Course Instructor, "
                 "Dr. Deepthi K, Assistant Professor, Department of Information Science and Engineering, "
                 "Nitte Meenakshi Institute of Technology, for her invaluable guidance, inspiring suggestions, "
-                "and constructive critiques throughout the conceptualization and development of this mini-project.\n\n"
-                "We express our sincere thanks to Dr. Prasad N. H., Head of the Department of Information Science "
-                "and Engineering, for providing excellent departmental infrastructure and state-of-the-art laboratory "
-                "facilities that enabled us to execute, test, and benchmark our software.\n\n"
+                "and constructive critiques throughout the conceptualization, system modeling, and implementation "
+                "of this mini-project.\n\n"
+                "We express our sincere thanks to Dr. Prasad N. H., Professor and Head, Department of Information "
+                "Science and Engineering, for providing excellent departmental infrastructure and state-of-the-art "
+                "laboratory facilities that enabled us to write, compile, benchmark, and verify our software solutions.\n\n"
                 "We also convey our sincere appreciation to our esteemed Principal and the Management of Nitte "
                 "Meenakshi Institute of Technology (Nitte Deemed to be University) for fostering an atmosphere of "
-                "academic inquiry and rigorous engineering practice.\n\n"
+                "academic inquiry, technical rigor, and hands-on engineering practice.\n\n"
                 "Finally, we extend our heartfelt gratitude to our parents, laboratory staff, and peer classmates "
                 "for their constant encouragement, insightful discussions, and technical camaraderie during the "
-                "implementation of this project."
+                "development and testing of this project."
             )
-            for r in doc.paragraphs[i + 1].runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
-            # Add page break at end of acknowledgement
-            doc.paragraphs[i + 1].add_run().add_break(WD_BREAK.PAGE)
+            p_ack_body.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p_ack_body.paragraph_format.space_before = Pt(6)
+            p_ack_body.paragraph_format.space_after = Pt(12)
+            p_ack_body.paragraph_format.line_spacing = 1.25
+            for r in p_ack_body.runs:
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
+            p_ack_body.add_run().add_break(WD_BREAK.PAGE)
             break
 
-    # 4. Abstract
+    # -------------------------------------------------------------
+    # 4. ABSTRACT PAGE
+    # -------------------------------------------------------------
     for i, p in enumerate(doc.paragraphs):
         if p.text.strip() == "ABSTRACT":
-            doc.paragraphs[i + 1].text = (
-                "Hostel room allocation in collegiate residential environments is a classic resource-allocation "
-                "problem marked by severe demand spikes during admission cycles and stochastic room vacancies. "
-                "Traditional manual ledgers and unorganized queues frequently suffer from human bias, lack of "
-                "transparency, double bookings, and severe waitlist starvation. Naive linear array queues further "
-                "suffer from the structural flaw of queue drift, where vacant memory slots cannot be reclaimed without "
-                "prohibitively expensive O(N) memory element shifting.\n\n"
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(14)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+            
+            p_abs_body = doc.paragraphs[i + 1]
+            p_abs_body.text = (
+                "Hostel accommodation allocation in educational institutions is a classic resource-allocation "
+                "problem marked by severe demand spikes during admission cycles and dynamic bed vacancies. Traditional "
+                "manual ledgers and unorganized queues frequently suffer from human bias, lack of transparency, double "
+                "bookings, and severe waitlist starvation. Naive software implementations using linear array queues "
+                "further suffer from the structural flaw of queue drift, where vacant memory slots at the front cannot "
+                "be reclaimed without prohibitively expensive O(N) memory element shifting.\n\n"
                 "This project presents the Smart Hostel Room Allocation and FIFO Waiting List Management System, "
                 "an academic, robust software solution engineered strictly in standard C (ISO C11 specification) "
                 "leveraging fundamental linear data structures: Contiguous 1D Arrays and an Array-based Circular FIFO "
@@ -155,7 +302,8 @@ def generate_filled_docx():
                 "fixed student academic profiles (Student struct) and multi-bed hostel room allotments (Room struct, "
                 "with a fixed constraint of maximum 4 beds per room). An Array-based Circular FIFO Waiting Queue is "
                 "engineered with modular pointer arithmetic ((rear + 1) % MAX and (front + 1) % MAX), ensuring "
-                "strictly O(1) enqueue and dequeue operations while perpetually recycling reclaimed array cells.\n\n"
+                "strictly O(1) enqueue and dequeue operations while perpetually recycling reclaimed array cells "
+                "without memory shifting or queue drift.\n\n"
                 "The system guarantees strict FIFO fairness: new accommodation requests are never permitted to bypass "
                 "waiting applicants, and whenever a bed is vacated or a new room is constructed, the bed is automatically "
                 "and atomically allocated to the front-most waiting student in O(1) time without human intervention. "
@@ -163,15 +311,46 @@ def generate_filled_docx():
                 "checks, queue underflow/overflow guards) and an automated test harness with 63 passing unit and "
                 "integration test cases confirming mathematical FIFO fairness and circular wrap-around integrity."
             )
-            for r in doc.paragraphs[i + 1].runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
-            # Add page break at end of abstract
-            doc.paragraphs[i + 1].add_run().add_break(WD_BREAK.PAGE)
+            p_abs_body.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p_abs_body.paragraph_format.space_before = Pt(6)
+            p_abs_body.paragraph_format.space_after = Pt(12)
+            p_abs_body.paragraph_format.line_spacing = 1.25
+            for r in p_abs_body.runs:
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
+            p_abs_body.add_run().add_break(WD_BREAK.PAGE)
             break
 
-    # 5. Table of Contents Update
-    toc_lines = [
+    # -------------------------------------------------------------
+    # 5. TABLE OF CONTENTS: PROFESSIONAL ALIGNED TABLE
+    # -------------------------------------------------------------
+    toc_p = None
+    for p in doc.paragraphs:
+        if p.text.strip() == "TABLE OF CONTENTS":
+            toc_p = p
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(14)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+            break
+
+    # Delete the old crude spaced paragraphs (P59 to P72)
+    to_delete = []
+    found_toc = False
+    for p in doc.paragraphs:
+        if p.text.strip() == "TABLE OF CONTENTS":
+            found_toc = True
+            continue
+        if found_toc:
+            if "CHAPTER 1: INTRODUCTION" in p.text:
+                break
+            to_delete.append(p)
+
+    for p in to_delete:
+        p._p.getparent().remove(p._p)
+
+    # Insert a real, perfectly aligned 3-column table for Table of Contents
+    toc_entries = [
         ("1.", "Introduction", "1"),
         ("2.", "Problem Statement", "2"),
         ("3.", "Objectives", "3"),
@@ -186,26 +365,47 @@ def generate_filled_docx():
         ("12.", "Conclusion", "27"),
         ("13.", "References", "28")
     ]
-    for i, p in enumerate(doc.paragraphs):
-        if "Sl. No." in p.text and "Topic" in p.text and "Page No." in p.text:
-            for offset, entry in enumerate(toc_lines):
-                target_p = doc.paragraphs[i + 1 + offset]
-                dots = "." * (45 - len(entry[1]))
-                target_p.text = f"{entry[0]:<6}{entry[1]} {dots} {entry[2]:>4}"
-                for r in target_p.runs:
-                    r.font.name = 'Consolas'
-                    r.font.size = Pt(9.5)
-            break
 
-    for p in doc.paragraphs:
-        if "[Update page numbers after completing the report.]" in p.text:
-            p.text = "Note: All chapters and appendices are organized sequentially as listed in the table of contents above."
-            p.runs[0].font.size = Pt(9)
-            p.runs[0].font.italic = True
+    toc_table = doc.add_table(rows=len(toc_entries) + 1, cols=3)
+    toc_p._p.addnext(toc_table._tbl)
+    toc_widths = [Inches(0.9), Inches(4.5), Inches(1.0)]
 
-    # 6. Chapter 1: Introduction
+    # Header
+    toc_table.rows[0].cells[0].text = "Sl. No."
+    toc_table.rows[0].cells[1].text = "Topic"
+    toc_table.rows[0].cells[2].text = "Page No."
+    toc_table.rows[0].cells[0].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    toc_table.rows[0].cells[1].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    toc_table.rows[0].cells[2].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    for row_idx, (sl, topic, pg) in enumerate(toc_entries, start=1):
+        row = toc_table.rows[row_idx]
+        row.cells[0].text = sl
+        row.cells[1].text = topic
+        row.cells[2].text = pg
+        row.cells[0].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        row.cells[1].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        row.cells[2].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    format_table(toc_table, toc_widths)
+
+    # Add a page break after TOC table
+    p_after_toc = docx.oxml.OxmlElement('w:p')
+    toc_table._tbl.addnext(p_after_toc)
+    p_br_toc = docx.text.paragraph.Paragraph(p_after_toc, doc)
+    p_br_toc.add_run().add_break(WD_BREAK.PAGE)
+
+    # -------------------------------------------------------------
+    # 6. CHAPTER 1: INTRODUCTION
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[Introduce the problem, its background, relevance, and how data structures help solve it.]" in p.text:
+        if p.text.strip() == "CHAPTER 1: INTRODUCTION":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[Introduce the problem, its background, relevance, and how data structures help solve it.]" in p.text or "Educational institutions accommodate hundreds or thousands" in p.text:
             p.text = (
                 "Educational institutions accommodate hundreds or thousands of outstation students each academic "
                 "year. Residential hostel accommodation is an indispensable prerequisite for student welfare and "
@@ -229,20 +429,31 @@ def generate_filled_docx():
                 "This project demonstrates the rigorous application of Arrays and Circular FIFO Queues in the C11 programming "
                 "language to engineer an automated, robust, and transparent Hostel Room Allocation and Waiting List Management System."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    # 7. Chapter 2: Problem Statement
+    # -------------------------------------------------------------
+    # 7. CHAPTER 2: PROBLEM STATEMENT
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[Clearly define the problem addressed by the project and explain the need for the proposed solution.]" in p.text:
+        if p.text.strip() == "CHAPTER 2: PROBLEM STATEMENT":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[Clearly define the problem addressed by the project and explain the need for the proposed solution.]" in p.text or "Problem Definition:\nGiven a collegiate residential hostel" in p.text:
             p.text = (
                 "Problem Definition:\n"
                 "Given a collegiate residential hostel with R rooms, where each room supports a bounded capacity of 1 to 4 beds, "
                 "and an incoming stream of N student accommodation applicants (where N may exceed total bed capacity M), design "
                 "and implement a deterministic, memory-efficient, and starvation-free allocation system in C using fixed-size "
                 "arrays and a circular FIFO queue.\n\n"
-                "The system must fulfill the following operational constraints:\n"
+                "Operational Requirements & Constraints:\n"
                 "1. Immediate Allocation: If vacant beds exist in the hostel, incoming applicants must be immediately allocated "
                 "the first available room and bed.\n"
                 "2. FIFO Waiting Queue Fairness: When all beds are 100% occupied, overflow applicants must be enqueued into an "
@@ -257,13 +468,24 @@ def generate_filled_docx():
                 "Numbers (USNs), disallow duplicate room additions, prevent out-of-bounds capacities (> 4 beds), and handle queue "
                 "overflow and underflow gracefully without segmentation faults or data corruption."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    # 8. Chapter 3: Objectives
+    # -------------------------------------------------------------
+    # 8. CHAPTER 3: OBJECTIVES
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "1. [Objective 1]" in p.text:
+        if p.text.strip() == "CHAPTER 3: OBJECTIVES":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "1. [Objective 1]" in p.text or "1. Design and implement contiguous fixed-size 1D arrays" in p.text:
             p.text = (
                 "1. Design and implement contiguous fixed-size 1D arrays of C structures to represent student demographic "
                 "profiles (Student) and multi-bed hostel room occupancy states (Room) with zero dynamic memory allocation.\n"
@@ -278,13 +500,24 @@ def generate_filled_docx():
                 "6. Construct an interactive 12-option console interface alongside an automated demonstration mode and a 63-test "
                 "automated test suite validating FIFO fairness, circular wrap-around, and edge-case handling."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    # 9. Chapter 4: Data Structures Used & Table 2
+    # -------------------------------------------------------------
+    # 9. CHAPTER 4: DATA STRUCTURES USED & TABLE 2
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[Name each data structure and explain why it is suitable for the problem.]" in p.text:
+        if p.text.strip() == "CHAPTER 4: DATA STRUCTURES USED":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[Name each data structure and explain why it is suitable for the problem.]" in p.text or "The architecture of the Smart Hostel Room Allocation System is built entirely upon two foundational" in p.text:
             p.text = (
                 "The architecture of the Smart Hostel Room Allocation System is built entirely upon two foundational "
                 "data structures: Contiguous Fixed-size Arrays and an Array-based Circular FIFO Queue.\n\n"
@@ -306,30 +539,45 @@ def generate_filled_docx():
                 "this mathematically by wrapping indices circularly: rear = (rear + 1) % MAX and front = (front + 1) % MAX. This enables infinite "
                 "continuous reuse of memory cells with strict O(1) enqueue and dequeue performance."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    t2 = doc.tables[2]
+    t2 = t_ds
+    t2_widths = [Inches(0.8), Inches(1.8), Inches(2.3), Inches(1.5)]
     t2_data = [
         ("1", "Fixed-size 1D Array of Structs (Student)", "Stores contiguous student demographic profiles, USNs, and room allotment status.", "student_register(), student_find_by_id(), student_find_by_usn(), student_display_all()"),
         ("2", "Fixed-size 1D Array of Structs (Room)", "Manages room capacity (max 4 beds/room) and tracks per-bed status and student indices.", "room_add(), room_find_first_vacant(), room_allocate_bed(), room_vacate_by_student()"),
         ("3", "Circular FIFO Queue (Ring Buffer Array)", "Maintains order-preserving waitlist for overflow applicants with zero queue drift and O(1) ops.", "cq_enqueue(), cq_dequeue(), cq_peek(), cq_is_empty(), cq_is_full(), cq_display()")
     ]
+    t2.rows[0].cells[0].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    t2.rows[0].cells[1].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    t2.rows[0].cells[2].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    t2.rows[0].cells[3].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
     for row_idx, d in enumerate(t2_data, start=1):
         row = t2.rows[row_idx]
         for col_idx in range(4):
             row.cells[col_idx].text = d[col_idx]
             for p in row.cells[col_idx].paragraphs:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if col_idx == 0 else WD_ALIGN_PARAGRAPH.LEFT
+                p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER if col_idx == 0 else WD_ALIGN_PARAGRAPH.LEFT
                 for r in p.runs:
-                    r.font.name = 'Calibri'
-                    r.font.size = Pt(10)
-    format_table(t2)
+                    set_font_run(r, FONT_FAMILY, 10, bold=(col_idx == 1))
+    format_table(t2, t2_widths)
 
-    # 10. Chapter 5: System Design and Methodology
+    # -------------------------------------------------------------
+    # 10. CHAPTER 5: SYSTEM DESIGN AND METHODOLOGY
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[Describe the system architecture, modules, inputs, outputs, and workflow. Insert a block diagram or flowchart.]" in p.text:
+        if p.text.strip() == "CHAPTER 5: SYSTEM DESIGN AND METHODOLOGY":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[Describe the system architecture, modules, inputs, outputs, and workflow. Insert a block diagram or flowchart.]" in p.text or "System Architecture & Modularity:\nThe project is engineered" in p.text:
             p.text = (
                 "System Architecture & Modularity:\n"
                 "The project is engineered following clean software modularity principles in C11. The codebase is divided into "
@@ -359,13 +607,24 @@ def generate_filled_docx():
                 "   -> While beds remain available in new room AND Waiting Queue is not empty:\n"
                 "      DEQUEUE student at FRONT -> Assign bed -> Update records."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(10.5)
+                set_font_run(r, FONT_FAMILY, 11.5, bold=False)
 
-    # 11. Chapter 6: Algorithm and Pseudocode
+    # -------------------------------------------------------------
+    # 11. CHAPTER 6: ALGORITHM AND PSEUDOCODE
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "Algorithm 1: [Name of operation]" in p.text:
+        if p.text.strip() == "CHAPTER 6: ALGORITHM AND PSEUDOCODE":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "Algorithm 1: [Name of operation]" in p.text or "Algorithm 1: Student Registration (student_register)" in p.text:
             p.text = (
                 "Algorithm 1: Student Registration (student_register)\n"
                 "Input: Student ID (id), Name (name), USN (usn), Department (dept), Academic Year (year)\n"
@@ -373,8 +632,8 @@ def generate_filled_docx():
                 "Steps:\n"
                 "1. If student_count >= MAX_STUDENTS, Return -1 (Array Overflow).\n"
                 "2. For i = 0 to student_count - 1:\n"
-                "   a. If students[i].id == id, Return -2 (Duplicate ID).\n"
-                "   b. If students[i].usn == usn, Return -3 (Duplicate USN).\n"
+                "   a. If students[i].id == id, Return -2 (Duplicate ID Error).\n"
+                "   b. If students[i].usn == usn, Return -3 (Duplicate USN Error).\n"
                 "3. Set idx = student_count.\n"
                 "4. Copy id, name, usn, dept, year into students[idx].\n"
                 "5. Set students[idx].roomNumber = -1, bedNumber = -1, status = STATUS_UNALLOCATED.\n"
@@ -436,13 +695,24 @@ def generate_filled_docx():
                 "   e. Set students[nextStudentIdx].status = STATUS_ALLOCATED.\n"
                 "   f. Print: Freed bed automatically allocated to FIFO FRONT student."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(10.5)
+                set_font_run(r, FONT_FAMILY, 11, bold=False)
 
-    # 12. Chapter 7: Implementation
+    # -------------------------------------------------------------
+    # 12. CHAPTER 7: IMPLEMENTATION
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[Describe the implementation in C. Explain important functions. Paste the complete, commented C source code here or include it in an appendix.]" in p.text:
+        if p.text.strip() == "CHAPTER 7: IMPLEMENTATION":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[Describe the implementation in C. Explain important functions. Paste the complete, commented C source code here or include it in an appendix.]" in p.text or "Technical Environment & Standards:\n- Language & Compiler: Standard C" in p.text:
             p.text = (
                 "Technical Environment & Standards:\n"
                 "- Language & Compiler: Standard C (ISO/IEC 9899:2011 C11 Standard) compiled using GCC 14.2.0 with flags -Wall -Wextra -std=c11.\n"
@@ -483,23 +753,38 @@ def generate_filled_docx():
                 "- room_find_first_vacant(int *outRoomIdx, int *outBedIdx): Iterates through rooms and checks bedStatus[b] == 0, guaranteeing deterministic bed filling.\n"
                 "- room_vacate_by_student(int studentIdx, ...): Clears bedStatus and triggers immediate FIFO dequeue handoff."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(10)
+                set_font_run(r, FONT_FAMILY, 11, bold=False)
 
-    # 13. Chapter 8: Results and Output & Table 3
+    # -------------------------------------------------------------
+    # 13. CHAPTER 8: RESULTS AND OUTPUT & TABLE 3
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[Include screenshots or console output and explain the results.]" in p.text:
+        if p.text.strip() == "CHAPTER 8: RESULTS AND OUTPUT":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[Include screenshots or console output and explain the results.]" in p.text or "The system was rigorously verified through an automated unit" in p.text:
             p.text = (
                 "The system was rigorously verified through an automated unit and integration test harness (tests/test_fifo.c) "
                 "as well as manual console verification and dedicated automated demonstration modes (--demo and --wrap-demo). "
                 "All 63 automated tests passed with zero failures (100% success rate)."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(10)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    t3 = doc.tables[3]
+    t3 = t_tests
+    t3_widths = [Inches(1.2), Inches(1.4), Inches(1.5), Inches(1.5), Inches(0.8)]
     while len(t3.rows) < 8:
         t3.add_row()
 
@@ -512,22 +797,23 @@ def generate_filled_docx():
         ("TC06: Queue Wrap-Around", "MAX=6; Enqueue 6, Dequeue 3, Enqueue 2", "REAR wraps (5+1)%6=0; REAR < FRONT", "REAR wrapped to index 1; FRONT = 3", "PASS"),
         ("TC07: Room Addition Auto-Alloc", "2 students waiting; Room 201 (cap 2) added", "Auto-allocate 2 beds; Queue empty", "2 students dequeued & allocated; Queue count 0", "PASS")
     ]
+    t3.rows[0].cells[0].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    t3.rows[0].cells[1].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    t3.rows[0].cells[2].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    t3.rows[0].cells[3].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    t3.rows[0].cells[4].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
     for row_idx, d in enumerate(t3_data, start=1):
         row = t3.rows[row_idx]
         for col_idx in range(5):
             row.cells[col_idx].text = d[col_idx]
             for p in row.cells[col_idx].paragraphs:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if col_idx in (0, 4) else WD_ALIGN_PARAGRAPH.LEFT
+                p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER if col_idx in (0, 4) else WD_ALIGN_PARAGRAPH.LEFT
                 for r in p.runs:
-                    r.font.name = 'Calibri'
-                    r.font.size = Pt(9.5)
-                    if col_idx == 4:
-                        r.font.bold = True
-                        r.font.color.rgb = RGBColor(0x16, 0x65, 0x34)
-    format_table(t3)
+                    set_font_run(r, FONT_FAMILY, 9.5, bold=(col_idx in (0, 4)), color_rgb=RGBColor(0x16, 0x65, 0x34) if col_idx == 4 else None)
+    format_table(t3, t3_widths)
 
     for p in doc.paragraphs:
-        if "[Insert program screenshots / sample output below.]" in p.text:
+        if "[Insert program screenshots / sample output below.]" in p.text or "Console Output of Automated FIFO Demonstration" in p.text:
             p.text = (
                 "Console Output of Automated FIFO Demonstration (hostel.exe --demo):\n\n"
                 "[STEP 1] Configuring Hostel with 2 Rooms (2 beds each = 4 beds total)...\n"
@@ -555,24 +841,40 @@ def generate_filled_docx():
                 "TEST RESULTS: 63 / 63 TESTS PASSED (100% SUCCESS RATE)\n"
                 "==============================================================="
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.left_indent = Inches(0.25)
+            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.05
             for r in p.runs:
-                r.font.name = 'Consolas'
-                r.font.size = Pt(9)
+                set_font_run(r, FONT_FAMILY, 9.5, bold=False)
 
-    # 14. Chapter 9: Time and Space Complexity & Table 4
+    # -------------------------------------------------------------
+    # 14. CHAPTER 9: TIME AND SPACE COMPLEXITY & TABLE 4
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[Analyze the time and space complexity of implemented operations. Specify best, average, and worst cases where applicable.]" in p.text:
+        if p.text.strip() == "CHAPTER 9: TIME AND SPACE COMPLEXITY":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[Analyze the time and space complexity of implemented operations. Specify best, average, and worst cases where applicable.]" in p.text or "Complexity Analysis:\nThe system achieves optimal" in p.text:
             p.text = (
                 "Complexity Analysis:\n"
                 "The system achieves optimal computational efficiency by leveraging circular pointer arithmetic and flat contiguous arrays. "
                 "Unlike a linear array queue that suffers from O(N) data relocation on each dequeue, the circular queue executes in "
                 "strict O(1) constant time for both enqueue and dequeue."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(10)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    t4 = doc.tables[4]
+    t4 = t_complexity
+    t4_widths = [Inches(1.4), Inches(1.2), Inches(1.0), Inches(2.8)]
     while len(t4.rows) < 6:
         t4.add_row()
 
@@ -583,20 +885,31 @@ def generate_filled_docx():
         ("Find First Vacant Bed", "Best: O(1)\nAvg: O(R*B)\nWorst: O(R*B)", "O(1) Aux", "Iterates across R rooms (R <= 50) and examines B beds (B <= 4). Bounded constant time in practice."),
         ("Vacate Bed & Auto-Allocate", "Best: O(R*B) + O(1)\nWorst: O(R*B) + O(1)", "O(1) Aux", "Locates bed via ownership scan O(R*B) and performs strict O(1) dequeue and bed allotment.")
     ]
+    t4.rows[0].cells[0].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    t4.rows[0].cells[1].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    t4.rows[0].cells[2].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    t4.rows[0].cells[3].paragraphs[0].paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
     for row_idx, d in enumerate(t4_data, start=1):
         row = t4.rows[row_idx]
         for col_idx in range(4):
             row.cells[col_idx].text = d[col_idx]
             for p in row.cells[col_idx].paragraphs:
-                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if col_idx == 1 else WD_ALIGN_PARAGRAPH.LEFT
+                p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER if col_idx in (1, 2) else WD_ALIGN_PARAGRAPH.LEFT
                 for r in p.runs:
-                    r.font.name = 'Calibri'
-                    r.font.size = Pt(9.5)
-    format_table(t4)
+                    set_font_run(r, FONT_FAMILY, 9.5, bold=(col_idx == 0))
+    format_table(t4, t4_widths)
 
-    # 15. Chapter 10: Applications
+    # -------------------------------------------------------------
+    # 15. CHAPTER 10: APPLICATIONS
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[List practical applications relevant to your project.]" in p.text:
+        if p.text.strip() == "CHAPTER 10: APPLICATIONS":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[List practical applications relevant to your project.]" in p.text or "The core principles demonstrated in this project—contiguous array record" in p.text:
             p.text = (
                 "The core principles demonstrated in this project—contiguous array record tracking combined with "
                 "circular FIFO queue waitlists—have widespread applications across real-world computing and logistics domains:\n\n"
@@ -611,13 +924,24 @@ def generate_filled_docx():
                 "5. Transportation & Reservation Systems: Railway waiting list allotment (e.g., Tatkal/RAC reservation upgrades) where "
                 "canceled tickets are automatically transferred to the first waiting passenger."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    # 16. Chapter 11: Limitations and Future Enhancements
+    # -------------------------------------------------------------
+    # 16. CHAPTER 11: LIMITATIONS AND FUTURE ENHANCEMENTS
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "Limitations:\n[Describe current limitations.]" in p.text or "Limitations:" in p.text:
+        if p.text.strip() == "CHAPTER 11: LIMITATIONS AND FUTURE ENHANCEMENTS":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "Limitations:\n[Describe current limitations.]" in p.text or "Limitations:\n1. Static Array Capacity" in p.text:
             p.text = (
                 "Limitations:\n"
                 "1. Static Array Capacity: Fixed compile-time bounds (MAX_STUDENTS = 100, MAX_ROOMS = 50, MAX_QUEUE = 50). When system "
@@ -634,13 +958,24 @@ def generate_filled_docx():
                 "3. Networked Client-Server Architecture: Exposing the C allocation engine through a lightweight TCP socket or REST API "
                 "to allow concurrent web and mobile applications to submit accommodation requests."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    # 17. Chapter 12: Conclusion
+    # -------------------------------------------------------------
+    # 17. CHAPTER 12: CONCLUSION
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "[Summarize the work completed, data structures applied, and outcomes achieved.]" in p.text:
+        if p.text.strip() == "CHAPTER 12: CONCLUSION":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "[Summarize the work completed, data structures applied, and outcomes achieved.]" in p.text or "The Smart Hostel Room Allocation and FIFO Waiting List Management System successfully demonstrates" in p.text:
             p.text = (
                 "The Smart Hostel Room Allocation and FIFO Waiting List Management System successfully demonstrates how foundational "
                 "linear data structures can be synthesized to engineer a high-performance, robust, and mathematically fair solution "
@@ -654,13 +989,24 @@ def generate_filled_docx():
                 "a rigorous 63-test automated verification suite that validates 100% functional correctness, pointer wrap-around handling, and "
                 "system stability."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 12, bold=False)
 
-    # 18. Chapter 13: References
+    # -------------------------------------------------------------
+    # 18. CHAPTER 13: REFERENCES
+    # -------------------------------------------------------------
     for p in doc.paragraphs:
-        if "1. [Reference 1]" in p.text:
+        if p.text.strip() == "CHAPTER 13: REFERENCES":
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(18)
+            p.paragraph_format.space_after = Pt(8)
+            for r in p.runs:
+                set_font_run(r, FONT_FAMILY, 14, bold=True)
+        elif "1. [Reference 1]" in p.text or "1. Reema Thareja, \"Data Structures Using C\"" in p.text:
             p.text = (
                 "1. Reema Thareja, \"Data Structures Using C\", 2nd Edition, Oxford University Press, 2014, Chapters 4 & 8 (Arrays, Queues and Circular Ring Buffers).\n"
                 "2. Thomas H. Cormen, Charles E. Leiserson, Ronald L. Rivest, and Clifford Stein, \"Introduction to Algorithms\", 3rd Edition, MIT Press, 2009, Chapter 10 (Elementary Data Structures: Stacks and Queues).\n"
@@ -668,17 +1014,41 @@ def generate_filled_docx():
                 "4. Ellis Horowitz, Sartaj Sahni, and Susan Anderson-Freed, \"Fundamentals of Data Structures in C\", 2nd Edition, Silicon Press, 2008.\n"
                 "5. ISO/IEC 9899:2011, \"Information Technology — Programming Languages — C\" (C11 Standard), International Organization for Standardization, Geneva, Switzerland, 2011."
             )
+            p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_after = Pt(12)
+            p.paragraph_format.line_spacing = 1.15
             for r in p.runs:
-                r.font.name = 'Calibri'
-                r.font.size = Pt(11)
+                set_font_run(r, FONT_FAMILY, 11, bold=False)
+
+    # -------------------------------------------------------------
+    # 19. GLOBAL FONT ENFORCEMENT & NORMALIZATION
+    # -------------------------------------------------------------
+    # Ensure EVERY single run in the entire document uses Times New Roman
+    for p in doc.paragraphs:
+        for r in p.runs:
+            set_font_run(r, FONT_FAMILY, r.font.size.pt if r.font.size else 12, bold=r.bold, italic=r.italic, color_rgb=r.font.color.rgb if r.font.color else None)
+
+    for t in doc.tables:
+        for row in t.rows:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    for r in p.runs:
+                        set_font_run(r, FONT_FAMILY, r.font.size.pt if r.font.size else 10, bold=r.bold, italic=r.italic, color_rgb=r.font.color.rgb if r.font.color else None)
 
     # Save to primary location
     doc.save(OUTPUT_DOCX)
     print(f"Saved primary DOCX: {OUTPUT_DOCX}")
 
-    # Copy to Artifacts for immediate accessibility
+    try:
+        shutil.copyfile(OUTPUT_DOCX, OUTPUT_FALLBACK_DOCX)
+        print(f"Updated secondary DOCX: {OUTPUT_FALLBACK_DOCX}")
+    except Exception as e:
+        print(f"Note: {OUTPUT_FALLBACK_DOCX} is currently open in Word. Saved to {OUTPUT_DOCX}.")
+
+    # Copy to Artifacts
     shutil.copyfile(OUTPUT_DOCX, OUTPUT_ARTIFACT_DOCX)
     print(f"Copied to Artifacts: {OUTPUT_ARTIFACT_DOCX}")
 
 if __name__ == "__main__":
-    generate_filled_docx()
+    main()
