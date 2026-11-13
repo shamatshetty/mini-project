@@ -1,0 +1,11 @@
+# Executables and compiler artifacts
+*.exe
+*.o
+*.obj
+*.out
+
+# Editor and OS temporary files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

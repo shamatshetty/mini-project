@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hostel Room Allocation System</title>
+  <style>
+    :root {
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --card-border: #dbe2ea;
+      --header-bg: #1e3a8a;
+      --header-text: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success-bg: #ecfdf5;
+      --success-border: #a7f3d0;
+      --success-text: #065f46;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+      --danger-text: #991b1b;
+      --warning-bg: #fffbeb;
+      --warning-border: #fde68a;
+      --warning-text: #92400e;
+      --input-border: #cbd5e1;
+      --table-header: #f8fafc;
+      --row-hover: #f1f5f9;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0b1329;
+      --card-bg: #152238;
+      --card-border: #233554;
+      --header-bg: #0f172a;
+      --header-text: #f8fafc;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --success-bg: rgba(6, 95, 70, 0.25);
+      --success-border: #059669;
+      --success-text: #6ee7b7;
+      --danger-bg: rgba(153, 27, 27, 0.25);
+      --danger-border: #dc2626;
+      --danger-text: #fca5a5;
+      --warning-bg: rgba(146, 64, 14, 0.25);
+      --warning-border: #d97706;
+      --warning-text: #fde68a;
+      --input-border: #334155;
+      --table-header: #1e293b;
+      --row-hover: #1e2d4a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 20px;
+      line-height: 1.5;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .wrapper {
+      max-width: 1260px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* College System Header */
+    .system-header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      border-radius: 8px;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .header-title-area h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .header-title-area p {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    .btn {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.15s, border-color 0.15s;
+    }
+
+    .btn-light {
+      background: #ffffff;
+      color: #1e3a8a;
+      border-color: #cbd5e1;
+    }
+    .btn-light:hover {
+      background: #f1f5f9;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-danger-sm {
+      background: #dc2626;
+      color: #ffffff;
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      border: none;
+    }
+    .btn-danger-sm:hover {
+      background: #b91c1c;
+    }
+
+    /* Statistics Summary Bar */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-val {
+      font-size: 26px;
+      font-weight: 700;
+      margin: 4px 0 2px;
+      color: var(--text-main);
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Main Workspace Grid */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 8fr 4fr;
+      gap: 18px;
+    }
+
+    @media (max-width: 992px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Card Panels */
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .panel-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .panel-header span {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Hostel Rooms Layout */
+    .rooms-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 12px;
+    }
+
+    .room-block {
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 12px;
+      background: var(--card-bg);
+    }
+
+    .room-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .beds-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .bed-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: 1px solid transparent;
+    }
+
+    .bed-row.vacant {
+      background: var(--success-bg);
+      border-color: var(--success-border);
+      color: var(--success-text);
+    }
+
+    .bed-row.occupied {
+      background: var(--row-hover);
+      border-color: var(--card-border);
+      color: var(--text-main);
+    }
+
+    /* Circular Queue Waitlist Strip */
+    .waitlist-container {
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .waitlist-strip {
+      display: flex;
+      gap: 6px;
+      min-width: 620px;
+    }
+
+    .queue-slot {
+      flex: 1;
+      min-width: 72px;
+      border: 1px solid var(--card-border);
+      background: var(--bg-color);
+      border-radius: 5px;
+      padding: 8px 4px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .queue-slot.active {
+      background: var(--card-bg);
+      border-color: #64748b;
+    }
+
+    .queue-slot.is-front {
+      border: 2px solid #16a34a;
+      background: var(--success-bg);
+    }
+
+    .queue-slot.is-rear {
+      border: 2px solid #7c3aed;
+      background: rgba(124, 58, 237, 0.08);
+    }
+
+    .queue-slot.is-front.is-rear {
+      border: 2px solid #0284c7;
+    }
+
+    .slot-idx {
+      font-size: 10px;
+      font-family: monospace;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .slot-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-main);
+      max-width: 65px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ptr-badge {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .ptr-front { background: #16a34a; color: #fff; }
+    .ptr-rear { background: #7c3aed; color: #fff; }
+    .ptr-both { background: #0284c7; color: #fff; }
+
+    /* Student Master Table & Real-Time Search */
+    .search-box {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 13px;
+      outline: none;
+    }
+    .search-box:focus {
+      border-color: var(--primary);
+    }
+
+    .search-card-hit {
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      color: var(--warning-text);
+      padding: 10px 14px;
+      border-radius: 5px;
+      font-size: 12px;
+      display: none;
+    }
+
+    .records-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .records-table th, .records-table td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .records-table th {
+      background: var(--table-header);
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .records-table tbody tr:hover {
+      background: var(--row-hover);
+    }
+
+    /* Badges */
+    .status-tag {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .tag-allocated { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); }
+    .tag-waiting { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-border); }
+    .tag-unallocated { background: var(--row-hover); color: var(--text-muted); border: 1px solid var(--card-border); }
+    .tag-vacated { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+
+    /* Tab Controls */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--card-border);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .tab-item {
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .tab-item.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    /* Form Styles */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .field-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .input-control {
+      background: var(--card-bg);
+      border: 1px solid var(--input-border);
+      color: var(--text-main);
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 13px;
+      outline: none;
+    }
+    .input-control:focus {
+      border-color: var(--primary);
+    }
+
+    .fields-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* Terminal Console */
+    .audit-log {
+      background: #0f172a;
+      color: #38bdf8;
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: 11.5px;
+      line-height: 1.5;
+      padding: 12px;
+      border-radius: 6px;
+      height: 210px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border: 1px solid var(--card-border);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+
+    <!-- Hostel Management System Header -->
+    <header class="system-header">
+      <div class="header-title-area">
+        <h1>Hostel Room Allocation System</h1>
+        <p>Campus Residence &amp; Bed Allotment Management Portal &bull; Standard C11 Data Structures Engine</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-light" onclick="toggleTheme()" id="theme-btn">Theme: Light</button>
+        <button class="btn btn-primary" onclick="runFifoDemo()">Run Allocation Demo</button>
+        <button class="btn btn-light" onclick="runWrapDemo()">Wrap-Around Demo</button>
+        <button class="btn btn-light" onclick="resetDemoState()">Reset</button>
+      </div>
+    </header>
+
+    <!-- Hostel Occupancy & Capacity Statistics Bar -->
+    <section class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total Rooms</div>
+        <div class="stat-val" id="stat-rooms">0</div>
+        <div class="stat-sub">Configured in hostel</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Bed Capacity</div>
+        <div class="stat-val" id="stat-capacity">0</div>
+        <div class="stat-sub">Max 4 beds per room</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Occupied Beds</div>
+        <div class="stat-val" id="stat-occupied" style="color: #2563eb;">0</div>
+        <div class="stat-sub" id="stat-occ-rate">0.0% occupancy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Available / Vacant Beds</div>
+        <div class="stat-val" id="stat-vacant" style="color: #16a34a;">0</div>
+        <div class="stat-sub">Ready for allotment</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Waiting List (Queue)</div>
+        <div class="stat-val" id="stat-waiting" style="color: #d97706;">0</div>
+        <div class="stat-sub" id="stat-pointers">FRONT: -1 | REAR: -1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Registered Students</div>
+        <div class="stat-val" id="stat-students">0</div>
+        <div class="stat-sub">Total applicants</div>
+      </div>
+    </section>
+
+    <!-- Main Workspace Layout -->
+    <div class="workspace-grid">
+
+      <!-- Left Column: Floor Plan, FIFO Waiting Queue, Student Directory -->
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+
+        <!-- Hostel Rooms & Bed Allotment Floor Plan -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Hostel Rooms &amp; Bed Occupancy</h2>
+            <span>Vacating any bed triggers automatic FIFO reallocation to the first waiting student.</span>
+          </div>
+          <div class="rooms-grid" id="rooms-container">
+            <!-- Rendered room cards -->
+          </div>
+        </div>
+
+        <!-- FIFO Waiting Queue (Circular Array Visualization) -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2>FIFO Waiting List &bull; Circular Queue Buffer</h2>
+            <span id="cq-formula-text">Rule: next = (rear + 1) % MAX. Student at FRONT is granted the next available bed.</span>
+          </div>
+
+          <div class="waitlist-container">
+            <div class="waitlist-strip" id="queue-strip">
+              <!-- Rendered circular queue slots -->
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); padding-top: 4px;">
+            <span>Queue Status: <strong id="cq-info-text">FRONT: -1, REAR: -1, Waiting: 0 / 12</strong></span>
+            <span id="wrap-indicator" style="font-weight: 600;">Wrap-Around: Inactive</span>
+          </div>
+        </div>
+
+        <!-- Student Records Master Directory -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Student Master Records &amp; Search</h2>
+            <span>Search student by Roll Number / USN / ID / Name</span>
+          </div>
+
+          <input type="text" id="search-input" class="search-box" placeholder="Search by USN (e.g. 1MS23CS001), Student ID (e.g. STU101), or Name..." oninput="handleSearchStudent()">
+
+          <div id="search-result" class="search-card-hit"></div>
+
+          <div style="overflow-x: auto;">
+            <table class="records-table">
+              <thead>
+                <tr>
+                  <th style="width: 45px;">Idx</th>
+                  <th>Student ID</th>
+                  <th>Name</th>
+                  <th>USN / Roll No</th>
+                  <th>Department</th>
+                  <th>Year</th>
+                  <th>Allotment Status</th>
+                  <th>Allotted Room &amp; Bed</th>
+                </tr>
+              </thead>
+              <tbody id="student-table-body">
+                <!-- Rendered student rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Allotment Actions & System Audit Log -->
+      <div style="display: flex; flex-direction: column; gap: 18px;">
+
+        <!-- Bed Allotment Desk -->
+        <div class="panel">
+          <div class="tab-bar">
+            <button class="tab-item active" id="tab-btn-request" onclick="switchTab('request')">1. Allocate Bed</button>
+            <button class="tab-item" id="tab-btn-room" onclick="switchTab('room')">2. Add Room</button>
+          </div>
+
+          <!-- Allotment Form -->
+          <div id="tab-request-pane">
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+              Register student and request bed allotment. If waiting queue is not empty, strict FIFO fairness guarantees new applicant joins REAR.
+            </p>
+            <div class="field-group">
+              <label>Student ID</label>
+              <input type="text" id="inp-id" class="input-control" placeholder="e.g. STU107">
+            </div>
+            <div class="field-group">
+              <label>Full Name</label>
+              <input type="text" id="inp-name" class="input-control" placeholder="e.g. Praveen Kumar">
+            </div>
+            <div class="field-group">
+              <label>University Seat Number (USN / Roll No)</label>
+              <input type="text" id="inp-usn" class="input-control" placeholder="e.g. 1MS23CS007">
+            </div>
+            <div class="fields-row">
+              <div class="field-group">
+                <label>Department</label>
+                <input type="text" id="inp-dept" class="input-control" value="CSE">
+              </div>
+              <div class="field-group">
+                <label>Year of Study</label>
+                <select id="inp-year" class="input-control">
+                  <option value="1">1st Year</option>
+                  <option value="2" selected>2nd Year</option>
+                  <option value="3">3rd Year</option>
+                  <option value="4">4th Year</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 6px;" onclick="handleRegisterAndRequest()">Allocate Bed / Enqueue</button>
+          </div>
+
+          <!-- Add Room Form -->
+          <div id="tab-room-pane" style="display: none;">
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+              Add a new hostel room. Any waiting students in the circular queue will automatically be allotted beds in arrival order!
+            </p>
+            <div class="field-group">
+              <label>Room Number</label>
+              <input type="number" id="inp-room-num" class="input-control" placeholder="e.g. 201">
+            </div>
+            <div class="field-group">
+              <label>Bed Capacity (1 to 4 beds)</label>
+              <input type="number" id="inp-room-cap" class="input-control" min="1" max="4" value="2">
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 6px;" onclick="handleAddRoom()">Add Room &amp; Auto-Allocate</button>
+          </div>
+        </div>
+
+        <!-- System Audit Log -->
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Hostel Activity &amp; Audit Log</h2>
+            <button class="btn btn-light" style="padding: 2px 8px; font-size: 11px;" onclick="clearLog()">Clear</button>
+          </div>
+          <div class="audit-log" id="term-log"></div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    /*
+     * Hostel Room Allocation System
+     * Client-Side Interactive Architecture Companion (C11 Arrays & Circular FIFO Queue)
+     */
+    const MAX_QUEUE = 12;
+    const MAX_BEDS_PER_ROOM = 4;
+
+    let students = [];
+    let rooms = [];
+    let waitingQueue = {
+      items: new Array(MAX_QUEUE).fill(-1),
+      front: -1,
+      rear: -1,
+      count: 0,
+      max: MAX_QUEUE
+    };
+
+    function log(msg) {
+      const term = document.getElementById('term-log');
+      const time = new Date().toLocaleTimeString();
+      term.textContent += `[${time}] ${msg}\n`;
+      term.scrollTop = term.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('term-log').textContent = '';
+    }
+
+    /* Circular Queue Core Operations */
+    function cqIsEmpty() {
+      return waitingQueue.front === -1;
+    }
+
+    function cqIsFull() {
+      return (waitingQueue.rear + 1) % waitingQueue.max === waitingQueue.front;
+    }
+
+    function cqEnqueue(studentIdx) {
+      if (cqIsFull()) {
+        log(`[QUEUE FULL] Cannot enqueue student index ${studentIdx}. Waiting list capacity reached.`);
+        return false;
+      }
+      const oldFront = waitingQueue.front;
+      const oldRear = waitingQueue.rear;
+      let isWrap = false;
+
+      if (cqIsEmpty()) {
+        waitingQueue.front = 0;
+        waitingQueue.rear = 0;
+      } else {
+        if (waitingQueue.rear === waitingQueue.max - 1) {
+          isWrap = true;
+        }
+        waitingQueue.rear = (waitingQueue.rear + 1) % waitingQueue.max;
+      }
+
+      waitingQueue.items[waitingQueue.rear] = studentIdx;
+      waitingQueue.count++;
+      students[studentIdx].status = 'WAITING';
+
+      log(`[ENQUEUE] '${students[studentIdx].name}' (${students[studentIdx].id}) queued at slot [${waitingQueue.rear}].`);
+      log(`  Pointers: (FRONT=${oldFront}, REAR=${oldRear}) -> (FRONT=${waitingQueue.front}, REAR=${waitingQueue.rear})`);
+      if (isWrap) {
+        log(`  >>> [CIRCULAR WRAP-AROUND] REAR wrapped from index ${oldRear} -> 0! <<<`);
+      }
+      return true;
+    }
+
+    function cqDequeue() {
+      if (cqIsEmpty()) {
+        log(`[QUEUE EMPTY] Waiting queue is empty.`);
+        return -1;
+      }
+      const studentIdx = waitingQueue.items[waitingQueue.front];
+      waitingQueue.items[waitingQueue.front] = -1;
+      const oldFront = waitingQueue.front;
+      const oldRear = waitingQueue.rear;
+      let isWrap = false;
+
+      if (waitingQueue.front === waitingQueue.rear) {
+        waitingQueue.front = -1;
+        waitingQueue.rear = -1;
+      } else {
+        if (waitingQueue.front === waitingQueue.max - 1) {
+          isWrap = true;
+        }
+        waitingQueue.front = (waitingQueue.front + 1) % waitingQueue.max;
+      }
+      waitingQueue.count--;
+
+      log(`[DEQUEUE] '${students[studentIdx].name}' (${students[studentIdx].id}) dequeued from FRONT slot [${oldFront}].`);
+      log(`  Pointers: (FRONT=${oldFront}, REAR=${oldRear}) -> (FRONT=${waitingQueue.front}, REAR=${waitingQueue.rear})`);
+      if (isWrap) {
+        log(`  >>> [CIRCULAR WRAP-AROUND] FRONT wrapped from index ${oldFront} -> 0! <<<`);
+      }
+      return studentIdx;
+    }
+
+    /* Room Management */
+    function addRoom(roomNum, capacity) {
+      if (rooms.some(r => r.roomNumber === roomNum)) {
+        alert(`Room ${roomNum} already exists! Duplicate room rejected.`);
+        return false;
+      }
+      if (capacity < 1 || capacity > MAX_BEDS_PER_ROOM) {
+        alert(`Capacity must be between 1 and ${MAX_BEDS_PER_ROOM} beds per room.`);
+        return false;
+      }
+
+      const newRoom = {
+        roomNumber: roomNum,
+        capacity: capacity,
+        occupiedCount: 0,
+        bedStatus: new Array(capacity).fill(0),
+        bedOwner: new Array(capacity).fill(-1)
+      };
+      rooms.push(newRoom);
+      log(`[ROOM ADDED] Room ${roomNum} with ${capacity} beds added to hostel.`);
+
+      /* Automatic Allocation after adding a room */
+      if (!cqIsEmpty()) {
+        log(`>>> [AUTO-ALLOCATION TRIGGERED BY NEW ROOM] Allocating new beds to waiting students in FIFO order...`);
+        for (let b = 0; b < newRoom.capacity && !cqIsEmpty(); b++) {
+          const nextStudentIdx = cqDequeue();
+          if (nextStudentIdx !== -1) {
+            newRoom.bedStatus[b] = 1;
+            newRoom.bedOwner[b] = nextStudentIdx;
+            newRoom.occupiedCount++;
+
+            const nextStu = students[nextStudentIdx];
+            nextStu.roomNumber = newRoom.roomNumber;
+            nextStu.bedNumber = b + 1;
+            nextStu.status = 'ALLOCATED';
+            log(`  -> Bed ${b + 1} allocated to FRONT student: '${nextStu.name}' (${nextStu.id})!`);
+          }
+        }
+      }
+      return true;
+    }
+
+    function findFirstVacantBed() {
+      for (let r = 0; r < rooms.length; r++) {
+        for (let b = 0; b < rooms[r].capacity; b++) {
+          if (rooms[r].bedStatus[b] === 0) {
+            return { roomIdx: r, bedIdx: b };
+          }
+        }
+      }
+      return null;
+    }
+
+    /* FIFO Fairness in Accommodation Request */
+    function requestAccommodation(studentIdx) {
+      const s = students[studentIdx];
+      if (s.status === 'ALLOCATED') {
+        alert(`Double Allocation Prevented: ${s.name} is ALREADY allocated Room ${s.roomNumber}, Bed ${s.bedNumber}`);
+        return;
+      }
+      if (s.status === 'WAITING') {
+        alert(`${s.name} is already in the FIFO waiting list!`);
+        return;
+      }
+
+      // If waiting queue is not empty, applicant enters REAR (no bypassing)
+      if (!cqIsEmpty()) {
+        log(`[FIFO FAIRNESS] Waiting list contains ${waitingQueue.count} student(s). New applicant '${s.name}' enters REAR.`);
+        cqEnqueue(studentIdx);
+
+        // If any vacant bed is available, allocate to FRONT student first
+        let vacant = findFirstVacantBed();
+        while (vacant && !cqIsEmpty()) {
+          const frontIdx = cqDequeue();
+          if (frontIdx !== -1) {
+            const frontStu = students[frontIdx];
+            const r = rooms[vacant.roomIdx];
+            r.bedStatus[vacant.bedIdx] = 1;
+            r.bedOwner[vacant.bedIdx] = frontIdx;
+            r.occupiedCount++;
+
+            frontStu.roomNumber = r.roomNumber;
+            frontStu.bedNumber = vacant.bedIdx + 1;
+            frontStu.status = 'ALLOCATED';
+            log(`>>> [FIFO ALLOCATION] Bed R${r.roomNumber}-B${frontStu.bedNumber} granted to FRONT student '${frontStu.name}' (${frontStu.id})!`);
+          }
+          vacant = findFirstVacantBed();
+        }
+        updateUI();
+        return;
+      }
+
+      // If waiting queue is empty, check for direct vacant bed
+      const vacant = findFirstVacantBed();
+      if (vacant) {
+        const room = rooms[vacant.roomIdx];
+        room.bedStatus[vacant.bedIdx] = 1;
+        room.bedOwner[vacant.bedIdx] = studentIdx;
+        room.occupiedCount++;
+
+        s.roomNumber = room.roomNumber;
+        s.bedNumber = vacant.bedIdx + 1;
+        s.status = 'ALLOCATED';
+        log(`[ALLOCATED] '${s.name}' (${s.id}) allotted Room ${s.roomNumber}, Bed ${s.bedNumber} immediately.`);
+      } else {
+        log(`[HOSTEL FULL] All beds occupied. Enqueuing '${s.name}' into FIFO Waiting Queue.`);
+        cqEnqueue(studentIdx);
+      }
+      updateUI();
+    }
+
+    function vacateBed(roomIdx, bedIdx) {
+      const room = rooms[roomIdx];
+      const studentIdx = room.bedOwner[bedIdx];
+      if (studentIdx === -1) return;
+
+      const s = students[studentIdx];
+      room.bedStatus[bedIdx] = 0;
+      room.bedOwner[bedIdx] = -1;
+      room.occupiedCount--;
+
+      s.status = 'VACATED';
+      s.roomNumber = -1;
+      s.bedNumber = -1;
+
+      log(`[BED VACATED] Room ${room.roomNumber}, Bed ${bedIdx + 1} vacated by '${s.name}' (${s.id}).`);
+
+      // Automatic FIFO Reallocation
+      if (!cqIsEmpty()) {
+        log(`>>> AUTOMATIC FIFO REALLOCATION TRIGGERED <<<`);
+        const nextIdx = cqDequeue();
+        if (nextIdx !== -1) {
+          const nextStudent = students[nextIdx];
+          room.bedStatus[bedIdx] = 1;
+          room.bedOwner[bedIdx] = nextIdx;
+          room.occupiedCount++;
+
+          nextStudent.roomNumber = room.roomNumber;
+          nextStudent.bedNumber = bedIdx + 1;
+          nextStudent.status = 'ALLOCATED';
+          log(`>>> [REALLOCATED] Bed ${room.roomNumber}-${bedIdx + 1} granted to FRONT student: '${nextStudent.name}' (${nextStudent.id})!`);
+        }
+      } else {
+        log(`[QUEUE EMPTY] Bed ${room.roomNumber}-${bedIdx + 1} remains vacant.`);
+      }
+
+      updateUI();
+    }
+
+    function handleRegisterAndRequest() {
+      const id = document.getElementById('inp-id').value.trim();
+      const name = document.getElementById('inp-name').value.trim();
+      const usn = document.getElementById('inp-usn').value.trim();
+      const dept = document.getElementById('inp-dept').value.trim();
+      const year = parseInt(document.getElementById('inp-year').value);
+
+      if (!id || !name || !usn) {
+        alert("Please enter Student ID, Name, and USN / Roll No.");
+        return;
+      }
+      if (students.some(s => s.id.toLowerCase() === id.toLowerCase())) {
+        alert(`Duplicate Student ID '${id}' rejected!`);
+        return;
+      }
+      if (students.some(s => s.usn.toLowerCase() === usn.toLowerCase())) {
+        alert(`Duplicate USN '${usn}' rejected!`);
+        return;
+      }
+
+      const newStudent = {
+        id, name, usn, dept, year,
+        roomNumber: -1,
+        bedNumber: -1,
+        status: 'UNALLOCATED'
+      };
+      students.push(newStudent);
+      const sIdx = students.length - 1;
+      log(`[STUDENT REGISTERED] '${name}' (${id}, ${usn}) registered in student records.`);
+
+      requestAccommodation(sIdx);
+
+      document.getElementById('inp-id').value = '';
+      document.getElementById('inp-name').value = '';
+      document.getElementById('inp-usn').value = '';
+    }
+
+    function handleAddRoom() {
+      const rNum = parseInt(document.getElementById('inp-room-num').value);
+      const rCap = parseInt(document.getElementById('inp-room-cap').value);
+      if (!rNum || !rCap) {
+        alert("Please enter valid room number and capacity.");
+        return;
+      }
+      if (addRoom(rNum, rCap)) {
+        updateUI();
+        document.getElementById('inp-room-num').value = '';
+      }
+    }
+
+    function handleSearchStudent() {
+      const term = document.getElementById('search-input').value.trim().toLowerCase();
+      const resBox = document.getElementById('search-result');
+
+      if (!term) {
+        resBox.style.display = 'none';
+        renderStudentTable(students);
+        return;
+      }
+
+      const match = students.find(s =>
+        s.id.toLowerCase() === term ||
+        s.usn.toLowerCase() === term ||
+        s.name.toLowerCase().includes(term)
+      );
+
+      if (match) {
+        resBox.style.display = 'block';
+        resBox.innerHTML = `
+          <strong>Found Student:</strong> ${match.name} (ID: ${match.id}, USN: ${match.usn}) &bull;
+          <strong>Dept:</strong> ${match.dept} (Year ${match.year}) &bull;
+          <strong>Status:</strong> ${match.status} &bull;
+          <strong>Allotted Bed:</strong> ${match.status === 'ALLOCATED' ? `Room ${match.roomNumber}, Bed ${match.bedNumber}` : 'Not Allocated'}
+        `;
+      } else {
+        resBox.style.display = 'none';
+      }
+
+      const filtered = students.filter(s =>
+        s.id.toLowerCase().includes(term) ||
+        s.usn.toLowerCase().includes(term) ||
+        s.name.toLowerCase().includes(term)
+      );
+      renderStudentTable(filtered);
+    }
+
+    function renderStudentTable(studentList) {
+      const tbody = document.getElementById('student-table-body');
+      tbody.innerHTML = '';
+      studentList.forEach((s) => {
+        const realIdx = students.indexOf(s);
+        let badgeClass = 'tag-unallocated';
+        if (s.status === 'ALLOCATED') badgeClass = 'tag-allocated';
+        else if (s.status === 'WAITING') badgeClass = 'tag-waiting';
+        else if (s.status === 'VACATED') badgeClass = 'tag-vacated';
+
+        const roomBedStr = s.status === 'ALLOCATED' ? `Room ${s.roomNumber}, Bed ${s.bedNumber}` : '--';
+
+        tbody.innerHTML += `
+          <tr>
+            <td style="font-family: monospace; color: var(--text-muted);">${realIdx}</td>
+            <td><strong>${s.id}</strong></td>
+            <td>${s.name}</td>
+            <td style="font-family: monospace;">${s.usn}</td>
+            <td>${s.dept}</td>
+            <td>Year ${s.year}</td>
+            <td><span class="status-tag ${badgeClass}">${s.status}</span></td>
+            <td>${roomBedStr}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function updateUI() {
+      let totalBeds = 0;
+      let occupiedBeds = 0;
+      rooms.forEach(r => {
+        totalBeds += r.capacity;
+        occupiedBeds += r.occupiedCount;
+      });
+      const vacantBeds = totalBeds - occupiedBeds;
+      const occPercent = totalBeds > 0 ? ((occupiedBeds / totalBeds) * 100).toFixed(1) : 0;
+
+      document.getElementById('stat-rooms').textContent = rooms.length;
+      document.getElementById('stat-capacity').textContent = totalBeds;
+      document.getElementById('stat-occupied').textContent = occupiedBeds;
+      document.getElementById('stat-occ-rate').textContent = `${occPercent}% occupancy`;
+      document.getElementById('stat-vacant').textContent = vacantBeds;
+      document.getElementById('stat-waiting').textContent = waitingQueue.count;
+      document.getElementById('stat-pointers').textContent = `FRONT: ${waitingQueue.front} | REAR: ${waitingQueue.rear}`;
+      document.getElementById('stat-students').textContent = students.length;
+
+      // Render Rooms
+      const rContainer = document.getElementById('rooms-container');
+      rContainer.innerHTML = '';
+      rooms.forEach((r, rIdx) => {
+        const rBox = document.createElement('div');
+        rBox.className = 'room-block';
+        let bedsHtml = '';
+        for (let b = 0; b < r.capacity; b++) {
+          const isOcc = r.bedStatus[b] === 1;
+          const sIdx = r.bedOwner[b];
+          const occupant = isOcc && students[sIdx] ? students[sIdx] : null;
+
+          bedsHtml += `
+            <div class="bed-row ${isOcc ? 'occupied' : 'vacant'}">
+              <span><strong>Bed ${b + 1}:</strong> ${isOcc ? `${occupant.name} (${occupant.id})` : 'Vacant'}</span>
+              ${isOcc ? `<button class="btn-danger-sm" onclick="vacateBed(${rIdx}, ${b})">Vacate</button>` : `<span style="font-size: 11px; opacity: 0.85;">Ready</span>`}
+            </div>
+          `;
+        }
+        rBox.innerHTML = `
+          <div class="room-top">
+            <span>Room ${r.roomNumber}</span>
+            <span style="font-weight: 500; font-size: 11px; color: var(--text-muted);">${r.occupiedCount}/${r.capacity} Occupied</span>
+          </div>
+          <div class="beds-stack">
+            ${bedsHtml}
+          </div>
+        `;
+        rContainer.appendChild(rBox);
+      });
+
+      // Render Circular Queue Strip
+      const qStrip = document.getElementById('queue-strip');
+      qStrip.innerHTML = '';
+      const isWrapped = waitingQueue.count > 0 && waitingQueue.rear < waitingQueue.front;
+
+      document.getElementById('wrap-indicator').innerHTML = isWrapped
+        ? `<span style="color: #d97706;">Wrap-Around: ACTIVE (REAR &lt; FRONT)</span>`
+        : `Wrap-Around: Normal`;
+
+      document.getElementById('cq-info-text').textContent =
+        `FRONT: ${waitingQueue.front}, REAR: ${waitingQueue.rear}, Waiting: ${waitingQueue.count} / ${waitingQueue.max}`;
+
+      for (let i = 0; i < waitingQueue.max; i++) {
+        const sIdx = waitingQueue.items[i];
+        const hasStu = sIdx !== -1 && students[sIdx];
+        const isF = (i === waitingQueue.front && waitingQueue.count > 0);
+        const isR = (i === waitingQueue.rear && waitingQueue.count > 0);
+
+        let slotClass = 'queue-slot';
+        if (hasStu) slotClass += ' active';
+        if (isF) slotClass += ' is-front';
+        if (isR) slotClass += ' is-rear';
+
+        let badge = '';
+        if (isF && isR) badge = `<span class="ptr-badge ptr-both">F &amp; R</span>`;
+        else if (isF) badge = `<span class="ptr-badge ptr-front">FRONT</span>`;
+        else if (isR) badge = `<span class="ptr-badge ptr-rear">REAR</span>`;
+
+        qStrip.innerHTML += `
+          <div class="${slotClass}">
+            <span class="slot-idx">[${i}]</span>
+            <span class="slot-name">${hasStu ? students[sIdx].id : '&mdash;'}</span>
+            <span style="font-size: 10px; color: var(--text-muted); max-width: 65px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${hasStu ? students[sIdx].name.split(' ')[0] : 'empty'}
+            </span>
+            ${badge}
+          </div>
+        `;
+      }
+
+      handleSearchStudent();
+    }
+
+    function switchTab(tab) {
+      const reqPane = document.getElementById('tab-request-pane');
+      const roomPane = document.getElementById('tab-room-pane');
+      const btnReq = document.getElementById('tab-btn-request');
+      const btnRoom = document.getElementById('tab-btn-room');
+
+      if (tab === 'request') {
+        reqPane.style.display = 'block';
+        roomPane.style.display = 'none';
+        btnReq.classList.add('active');
+        btnRoom.classList.remove('active');
+      } else {
+        reqPane.style.display = 'none';
+        roomPane.style.display = 'block';
+        btnReq.classList.remove('active');
+        btnRoom.classList.add('active');
+      }
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      document.getElementById('theme-btn').textContent = `Theme: ${next === 'dark' ? 'Dark' : 'Light'}`;
+    }
+
+    function resetDemoState() {
+      students = [];
+      rooms = [];
+      waitingQueue = {
+        items: new Array(MAX_QUEUE).fill(-1),
+        front: -1,
+        rear: -1,
+        count: 0,
+        max: MAX_QUEUE
+      };
+
+      addRoom(101, 2);
+      addRoom(102, 2);
+      addRoom(201, 2);
+
+      const initial = [
+        { id: 'STU101', name: 'Aarav Sharma', usn: '1MS23CS001', dept: 'CSE', year: 2 },
+        { id: 'STU102', name: 'Bhavna Patel', usn: '1MS23CS002', dept: 'ECE', year: 3 },
+        { id: 'STU103', name: 'Chetan Kumar', usn: '1MS23CS003', dept: 'ISE', year: 1 },
+        { id: 'STU104', name: 'Deepa Nair',   usn: '1MS23CS004', dept: 'AIML', year: 2 },
+        { id: 'STU105', name: 'Eshwar Reddy', usn: '1MS23CS005', dept: 'MECH', year: 4 },
+        { id: 'STU106', name: 'Farhan Ali',   usn: '1MS23CS006', dept: 'CIVIL', year: 2 }
+      ];
+
+      initial.forEach(st => {
+        students.push({ ...st, roomNumber: -1, bedNumber: -1, status: 'UNALLOCATED' });
+      });
+
+      requestAccommodation(0);
+      requestAccommodation(1);
+      requestAccommodation(2);
+      requestAccommodation(3);
+
+      log("Hostel Room Allocation System initialized: 3 Rooms (6 beds total) & 6 students registered.");
+      updateUI();
+    }
+
+    async function runFifoDemo() {
+      clearLog();
+      log("=== AUTOMATED ALLOCATION & FIFO DEMONSTRATION ===");
+      students = [];
+      rooms = [];
+      waitingQueue = { items: new Array(MAX_QUEUE).fill(-1), front: -1, rear: -1, count: 0, max: MAX_QUEUE };
+
+      addRoom(101, 2);
+      addRoom(102, 2);
+      updateUI();
+      log("[1] Configured Rooms 101 & 102 (4 beds total).");
+      await sleep(700);
+
+      const fullList = [
+        { id: 'DEMO01', name: 'Alice Smith', usn: '1MS23CS101', dept: 'CSE', year: 2 },
+        { id: 'DEMO02', name: 'Bob Johnson',  usn: '1MS23CS102', dept: 'ECE', year: 1 },
+        { id: 'DEMO03', name: 'Charlie Ray',  usn: '1MS23CS103', dept: 'ISE', year: 3 },
+        { id: 'DEMO04', name: 'Diana Prince', usn: '1MS23CS104', dept: 'MECH', year: 2 }
+      ];
+
+      fullList.forEach(st => students.push({ ...st, roomNumber: -1, bedNumber: -1, status: 'UNALLOCATED' }));
+      for (let i = 0; i < 4; i++) {
+        requestAccommodation(i);
+        await sleep(350);
+      }
+      log("[2] Hostel is 100% occupied (4/4 beds allocated).");
+      await sleep(700);
+
+      const queueList = [
+        { id: 'DEMO05', name: 'Evan Wright',      usn: '1MS23CS105', dept: 'CSE', year: 1 },
+        { id: 'DEMO06', name: 'Fiona Gallagher',  usn: '1MS23CS106', dept: 'CIVIL', year: 2 },
+        { id: 'DEMO07', name: 'George Clark',     usn: '1MS23CS107', dept: 'AIML', year: 1 }
+      ];
+
+      log("[3] Extra students request accommodation -> Enqueued to Waiting List in FIFO order.");
+      for (let j = 0; j < queueList.length; j++) {
+        students.push({ ...queueList[j], roomNumber: -1, bedNumber: -1, status: 'UNALLOCATED' });
+        requestAccommodation(students.length - 1);
+        await sleep(400);
+      }
+
+      await sleep(800);
+      log("[4] Alice Smith vacates Bed 101-1...");
+      vacateBed(0, 0);
+      await sleep(600);
+
+      log(">>> SUCCESS: First waiting student Evan Wright (FRONT) automatically allotted Bed 101-1!");
+      log("=== DEMONSTRATION COMPLETE ===");
+    }
+
+    async function runWrapDemo() {
+      clearLog();
+      log("=== CIRCULAR QUEUE WRAP-AROUND DEMONSTRATION ===");
+      students = [];
+      rooms = [];
+      waitingQueue = { items: new Array(MAX_QUEUE).fill(-1), front: -1, rear: -1, count: 0, max: MAX_QUEUE };
+      updateUI();
+
+      log("[1] Filling circular queue array up to MAX_QUEUE (slots 0 through " + (MAX_QUEUE - 1) + ")...");
+      for (let i = 0; i < MAX_QUEUE; i++) {
+        students.push({
+          id: `STU_${i+1}`,
+          name: `Applicant_${i+1}`,
+          usn: `1MS23CS${100+i}`,
+          dept: 'CSE',
+          year: 1,
+          roomNumber: -1,
+          bedNumber: -1,
+          status: 'UNALLOCATED'
+        });
+        cqEnqueue(i);
+        updateUI();
+        await sleep(200);
+      }
+      log(`Queue is FULL! FRONT=${waitingQueue.front}, REAR=${waitingQueue.rear}.`);
+      await sleep(800);
+
+      log("[2] Dequeuing 4 students from FRONT (slots [0]..[3] become vacant)...");
+      for (let d = 0; d < 4; d++) {
+        cqDequeue();
+        updateUI();
+        await sleep(300);
+      }
+      log(`FRONT advanced to index ${waitingQueue.front}. Slots [0] through [3] are free.`);
+      await sleep(800);
+
+      log("[3] Enqueuing 3 new students (Triggering (rear + 1) % MAX wrap-around to index 0!)...");
+      for (let k = 0; k < 3; k++) {
+        const newIdx = students.length;
+        students.push({
+          id: `WRAP_${k+1}`,
+          name: `WrapStudent_${k+1}`,
+          usn: `1MS23CS${200+k}`,
+          dept: 'AIML',
+          year: 2,
+          roomNumber: -1,
+          bedNumber: -1,
+          status: 'UNALLOCATED'
+        });
+        cqEnqueue(newIdx);
+        updateUI();
+        await sleep(350);
+      }
+
+      log(`>>> RESULT: REAR (${waitingQueue.rear}) < FRONT (${waitingQueue.front})! Circular wrap-around demonstrated!`);
+      log("=== WRAP-AROUND DEMONSTRATION COMPLETE ===");
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      resetDemoState();
+    });
+  </script>
+</body>
+</html>
